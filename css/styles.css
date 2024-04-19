@@ -1,0 +1,586 @@
+/* libre baskerville */
+@font-face {
+	font-family: "librebaskerville-regular";
+	src: url("../../fonts/librebaskerville/librebaskerville-regular-webfont.woff2") format("woff2"), 
+	     url("../../fonts/librebaskerville/librebaskerville-regular-webfont.woff") format("woff");
+	font-style: normal;
+	font-weight: normal;
+}
+@font-face {
+	font-family: "librebaskerville-italic";
+	src: url("../../fonts/librebaskerville/librebaskerville-italic-webfont.woff2") format("woff2"), 
+	     url("../../fonts/librebaskerville/librebaskerville-italic-webfont.woff") format("woff");
+	font-style: normal;
+	font-weight: normal;
+}
+@font-face {
+	font-family: "librebaskerville-bold";
+	src: url("../../fonts/librebaskerville/librebaskerville-bold-webfont.woff2") format("woff2"), 
+	     url("../../fonts/librebaskerville/librebaskerville-bold-webfont.woff") format("woff");
+	font-style: normal;
+	font-weight: normal;
+}
+
+/* montserrat */
+@font-face {
+	font-family: "montserrat-regular";
+	src: url("../../fonts/montserrat/montserrat-regular-webfont.woff2") format("woff2"), 
+	     url("../../fonts/montserrat/montserrat-regular-webfont.woff") format("woff");
+	font-style: normal;
+	font-weight: normal;
+}
+@font-face {
+	font-family: "montserrat-bold";
+	src: url("../../fonts/montserrat/montserrat-bold-webfont.woff2") format("woff2"), 
+	     url("../../fonts/montserrat/montserrat-bold-webfont.woff") format("woff");
+	font-style: normal;
+	font-weight: normal;
+}
+
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f7f7f7;
+  overflow: hidden;
+}
+
+.container {
+  display: flex;
+  height: 100vh;
+  position: relative;
+}
+
+#map {
+  flex: 1;
+  position: relative;
+  z-index: 0;
+}
+
+.wrapper {
+  margin-top: 37px;
+  display: block;
+  margin-left: -9px;
+}
+
+.legend, .update-section {
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ccc;
+  /* border-radius: 5px; */
+  padding: 6px;
+  width: 250px;
+  /* box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2); */
+  z-index: 1;
+}
+
+.legend {
+  clear: both;
+}
+
+.legend h2 {
+  font-size: 11px;
+  margin-top: 0;
+  margin-bottom: 2px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 4px;
+  width: 32%;
+}
+
+.legend-item .marker-icon {
+  width: 100%;
+  height: 45px;
+  margin-right: 3px;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+
+.legend-item span {
+  color: #fff;
+  font-size: 13px;
+}
+
+.legend.departement {
+  top: 97px;
+}
+
+.legend.calcul {
+  top: 147px;
+}
+
+.departement-select {
+  margin-right: 10px;
+}
+
+select#departement, select#services {
+  font-size: 9px;
+  height: 20px;
+  border-radius: 2px;
+  width: 85%;
+}
+
+#update-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 4px;
+  cursor: pointer;
+  float: right;
+  font-size: 11px;
+  margin-left: 5px;
+  display: block;
+}
+
+#calculateBtn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 4px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+#calculateBtnBis {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  margin-top: 6px;
+  width: 100%;
+}
+/* Styles pour les marqueurs de couleur */
+@keyframes pulse {
+  0% {
+    filter: brightness(1.4) drop-shadow(0 0 10px rgba(0, 0, 0, 0.4));
+    opacity: 0.8;
+  }
+  50% {
+    filter: brightness(1.6) drop-shadow(0 0 15px rgba(0, 0, 0, 0.6));
+    opacity: 1;
+  }
+  100% {
+    filter: brightness(1.4) drop-shadow(0 0 10px rgba(0, 0, 0, 0.4));
+    opacity: 0.8;
+  }
+}
+
+.marker-icon-custom {
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 8px;
+  display: flex;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-family: "montserrat-regular", sans-serif;
+}
+
+.marker-icon-gazole {
+  background-color: #5eba7d;
+}
+
+.marker-icon-e10 {
+  background-color: #5a88ca;
+}
+
+.marker-icon-sp98 {
+  background-color: #ff6f6f;
+}
+
+.marker-icon-sp95 {
+  background-color: #ffaa64;
+}
+
+.marker-icon-e85 {
+  background-color: #ff6fe7;
+}
+
+.marker-icon-gplc {
+  background-color: #6fddff;
+}
+
+.marker-icon-gazole .leaflet-pulsing-icon {
+  background-color: rgba(94, 186, 125, 1.0);
+}
+
+.marker-icon-e10 .leaflet-pulsing-icon {
+  background-color: rgba(90, 136, 202, 1.0);
+}
+
+.marker-icon-sp98 .leaflet-pulsing-icon {
+  background-color: rgba(255, 111, 111, 1.0);
+}
+
+.marker-icon-sp95 .leaflet-pulsing-icon {
+  background-color: rgba(255, 170, 100, 1.0);
+}
+
+.marker-icon-e85 .leaflet-pulsing-icon {
+  background-color: rgba(255, 111, 231, 1.0);
+}
+
+.marker-icon-gplc .leaflet-pulsing-icon {
+  background-color: rgba(111, 221, 255, 1.0);
+}
+
+.euh {
+  position: relative;
+  background-color: transparent; /* Ajout pour s'assurer qu'il n'y a pas de fond */
+  padding: 0; /* S'assurer qu'il n'y a pas de padding inattendu */
+  margin: 0; /* S'assurer qu'il n'y a pas de marge inattendue */
+}
+
+
+.custom-icon {
+  width: 23px !important;
+  height: 23px !important; /* Ajusté pour prendre en compte la pointe du marker */
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50% 50% 50% 0%; /* Ajouté pour créer la pointe du marker */
+  transform: rotate(-45deg); /* Rotation pour avoir la pointe en bas */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  z-index: 235 !important;
+}
+
+/* Si vous voulez ajouter une icône ou un texte à l'intérieur, voici un style d'exemple */
+.custom-icon-content {
+  transform: rotate(45deg); /* Rotation inverse pour avoir le contenu droit */
+  font-size: 12px; /* À ajuster selon vos besoins */
+  color: #000;
+}
+
+.fa-gas-pump {
+  color: #8c2121;
+}
+
+.fa-charging-station {
+  color: #218c5a;
+}
+
+label {
+  font-size: 10px;
+}
+
+select#models, select#brands {
+  width: 100%;
+  font-size: 9px;
+  height: 20px;
+  border-radius: 2px;
+}
+
+#consumptionResult {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+#consumptionResult > p.conso {
+  flex-basis: calc(33% - 10px);
+  margin: 5px;
+  font-size: 9px;
+}
+
+#consumptionResult .conso:empty {
+  display: none;
+}
+
+#consumptionResult > p.price-euros {
+  flex-basis: calc(16% - 9px);
+  margin: 5px;
+  font-size: 9px;
+}
+
+span.conso-details {
+  display: flex;
+}
+
+p.mdl {
+  font-size: 10px;
+  background: #222;
+  color: #fff;
+  padding: 3px;
+  border-radius: 3px;
+  width: 100%;
+}
+
+#distanceErrorMessage {
+  font-size: 9px;
+  text-align: center;
+  color: #222;
+}
+
+/* Styles pour le bouton de menu burger */
+.burger-button {
+  position: absolute;
+  z-index: 2;
+}
+
+/* Styles pour le menu burger */
+.burger-menu {
+  /*background-color: rgba(255, 255, 255, 0.9);*/
+  /*border: 1px solid #ccc;*/
+  padding: 10px;
+  width: 250px;
+  position: absolute;
+  top: 0;
+  right: -270px; /* Changement ici pour déplacer le menu vers la droite */
+  transition: right 0.3s ease-in-out; /* Changement ici pour ajuster l'animation */
+  z-index: 1;
+}
+
+.burger-menu.active {
+  right: 0; /* Changement ici pour afficher le menu à droite */
+}
+/* ------------------------------------------------------------------- 
+ * menu trigger - (_layout.css) 
+ * ------------------------------------------------------------------- */
+ #header-menu-trigger {
+	display: block;
+	position: fixed;
+	right: 5px;
+	top: 5px;
+	height: 42px;
+	width: 42px;
+	line-height: 42px;
+	font-family: "montserrat-regular", sans-serif;
+	text-transform: uppercase;
+	letter-spacing: .2rem;
+	color: rgba(255, 255, 255, 0.5);
+	-moz-transition: all 0.3s ease-in-out;
+	-o-transition: all 0.3s ease-in-out;
+	-webkit-transition: all 0.3s ease-in-out;
+	-ms-transition: all 0.3s ease-in-out;
+	transition: all 0.3s ease-in-out;
+}
+
+#header-menu-trigger.opaque {
+	background-color: #000000;
+}
+
+#header-menu-trigger.opaque .header-menu-text {
+	background-color: #000000;
+}
+
+#header-menu-trigger:hover,
+#header-menu-trigger:focus {
+	color: #FFFFFF;
+}
+
+#header-menu-trigger .header-menu-text {
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -80px;
+	width: 85px;
+	text-align: center;
+	background-color: transparent;
+	-moz-transition: all 0.3s ease-in-out;
+	-o-transition: all 0.3s ease-in-out;
+	-webkit-transition: all 0.3s ease-in-out;
+	-ms-transition: all 0.3s ease-in-out;
+	transition: all 0.3s ease-in-out;
+}
+
+#header-menu-trigger .header-menu-icon {
+	display: block;
+	height: 2px;
+	width: 24px;
+	background-color: #FFFFFF;
+	position: absolute;
+	top: 50%;
+	right: 9px;
+	margin-top: -2px;
+}
+
+#header-menu-trigger .header-menu-icon::before,
+#header-menu-trigger .header-menu-icon::after {
+	content: '';
+	width: 100%;
+	height: 100%;
+	background-color: inherit;
+	position: absolute;
+	left: 0;
+}
+
+#header-menu-trigger .header-menu-icon::before {
+	top: -9px;
+}
+
+#header-menu-trigger .header-menu-icon::after {
+	bottom: -9px;
+}
+
+.etiquette-essence {
+  border-radius: 5px;
+  padding: 0px 2px;
+  color: #fff;
+}
+
+/* Couleur rouge */
+span.red {
+  background-color: rgba(243, 69, 69, 0.9);
+}
+
+/* Couleur orange */
+span.orange {
+  background-color: rgba(243, 162, 69, 0.9);
+}
+
+/* Couleur jaune */
+span.yellow {
+  background-color: rgba(243, 202, 69, 0.9);
+}
+
+/* Couleur verte */
+span.green {
+  background-color: rgba(69, 243, 107, 0.9);
+}
+
+span.move-info-right {
+  float: right;
+}
+
+.services {
+  top: 293px;
+}
+
+.abricot {
+  stroke-dasharray: 1920;
+  stroke-dashoffset: 1920;
+  animation: dash 2s linear 1s forwards;
+}
+
+@keyframes dash {
+  to {
+      stroke-dashoffset: 0;
+  }
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  border: 1px solid #ddd;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background-color: #f2f2f2;
+}
+
+tr:nth-child(2) {
+  background-color: #f2f2f2;
+}
+
+img.img_elec {
+  max-width: 40px;
+  max-height: 40px;
+}
+td {
+  text-align: center; /* Ajout de l'alignement au centre pour les cellules */
+}
+
+td.text-elec {
+  font-size: 10px;
+}
+
+.leaflet-popup-content {
+  line-height: 1.2 !important;
+}
+@keyframes pulsate-opacity {
+  0% {
+      opacity: 0.3;
+  }
+  100% {
+      opacity: 0;
+  }
+}
+
+.leaflet-div-icon {
+  background: none !important;
+  border: none !important;
+}
+
+.leaflet-pulsing-icon:after {
+  content: "";
+  display: block;
+  background: inherit;
+  border-radius: 50%;
+  width: 45px; /* taille fixe exemple */
+  height: 45px; /* taille fixe exemple */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: pulsate-opacity 2s infinite;
+  z-index: 0;
+}
+
+.marker-cluster > .fas.fa-charging-station {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 10px;
+}
+
+.marker-cluster div {
+  width: 30px;
+  height: 30px;
+  margin-left: 5px;
+  margin-top: 5px;
+  text-align: center;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  font: 9px "montserrat-regular", sans-serif;
+  align-items: center;
+  justify-content: center;
+  display: flex;
+  font-weight: bold;
+}
+
+.marker-cluster span {
+  line-height: 30px;
+  padding-right: 5px;
+}
+
+/*Chargement des données en cours */
+#loadingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7); /* noir avec opacité */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999; /* Assurez-vous qu'il est au-dessus de tout le reste */
+}
+
+#loadingMessage {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.leaflet-marker-icon.leaflet-div-icon.leaflet-zoom-animated.leaflet-interactive {
+  z-index: 999 !important;
+}
