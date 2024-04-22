@@ -67,10 +67,10 @@ function clearPreviousData() {
 
 // Fonction pour vérifier le nombre d'enregistrement
 function logRecordCount(count) {
-    //console.log("Nombre d'enregistrements:", count);
+    console.log("Nombre d'enregistrements:", count);
 }
 
-// Fonction pour créer le smarkers
+// Fonction pour créer les markers
 function createCustomIcon() {
     return L.divIcon({
         html: '<div class="euh"><div class="custom-icon"><div class="custom-icon-content"><i class="fa-solid fa-gas-pump"></i></div></div></div>',
@@ -92,6 +92,10 @@ function initializePricesByCarburant() {
         GPLc: [],
     };
 }
+// Fonction pour enregistrer le nombre total de pages
+function logTotalPages(totalPages) {
+    console.log("Total pages:", totalPages);
+}
 
 async function fetchRecords(page, selectedDepartement) {
     clearPreviousData();
@@ -100,60 +104,62 @@ async function fetchRecords(page, selectedDepartement) {
         const apiUrl = getApiUrl(page, selectedDepartement);
         const response = await fetch(apiUrl);
         const data = await response.json();
-        const records = data.results; // Utilisation de data.results pour accéder aux enregistrements
-
+        const records = data.results;
 
         if (records.length > 0) {
             const departementCoordinates = extractDepartementCoordinates(records);
-            //logRecordCount(records.length);
+            logRecordCount(records.length);
+
+            // Correction de la pagination
+            const totalCount = data.total_count;
+            const totalPages = Math.ceil(data.total_count / 100);
+
+            logTotalPages(totalPages);
         } else {
-            //logRecordCount(records.length);
+            logRecordCount(records.length);
         }
 
         const pricesByCarburant = initializePricesByCarburant();
         const myIcon = createCustomIcon();
 
-		for (const record of records) {
-			const { geom, prix, services_service, carburants_disponibles } = record; // Extraction des données pertinentes
-		
-			if (geom && geom.lat && geom.lon) {
-				const latitude = geom.lat;
-				const longitude = geom.lon;
-		
-				try {
-					const parsedServices = services_service; // Pas besoin de le repasser à JSON.parse, car c'est déjà un tableau JSON valide
-					const parsedPrix = JSON.parse(prix); // Convertir le prix en tableau d'objets JSON
+        for (const record of records) {
+            const { geom, prix, services_service, carburants_disponibles } = record;
 
-					const popupContent = createPopupContentCarbu(record, parsedServices, carburants_disponibles, parsedPrix); // Utilisation de l'objet record entier
-					const marker = createMarker(latitude, longitude, myIcon); // Création du marqueur ici
-					marker.bindPopup(popupContent);
-		
-					addMarkerEventListener(marker, latitude, longitude, record, parsedServices, carburants_disponibles, parsedPrix); // Pass services as a parameter
-		
-					collectPricesByCarburant(record, pricesByCarburant, { coordinates: [longitude, latitude] }); // Utilisation de l'objet record entier
-				} catch (error) {
-					console.error("Erreur lors de l'analyse JSON :", error);
-					// Gérer l'erreur ici, par exemple en fournissant une valeur par défaut pour les champs invalides
-				}
-			}
-		}
-		
+            if (geom && geom.lat && geom.lon) {
+                const latitude = geom.lat;
+                const longitude = geom.lon;
+
+                try {
+                    const parsedServices = services_service;
+                    const parsedPrix = JSON.parse(prix);
+
+                    const popupContent = createPopupContentCarbu(record, parsedServices, carburants_disponibles, parsedPrix);
+                    const marker = createMarker(latitude, longitude, myIcon);
+                    marker.bindPopup(popupContent);
+
+                    addMarkerEventListener(marker, latitude, longitude, record, parsedServices, carburants_disponibles, parsedPrix);
+
+                    collectPricesByCarburant(record, pricesByCarburant, { coordinates: [longitude, latitude] });
+                } catch (error) {
+                    console.error("Erreur lors de l'analyse JSON :", error);
+                }
+            }
+        }
+
         highlightTop3(pricesByCarburant);
 
         await fetchElectricRecords(page, selectedDepartement);
 
-        if (selectedDepartement === "Paris") { // Utilisation de selectedDepartement au lieu de mainValue
-            await fetchParkingRecords(page, "Île-de-France"); // Utilisation de la valeur Île-de-France directement
+        if (selectedDepartement === "Paris") {
+            await fetchParkingRecords(page, "Île-de-France");
         } else {
-            await fetchParkingRecords(page, selectedDepartement); // Utilisation de selectedDepartement
+            await fetchParkingRecords(page, selectedDepartement);
         }
 
     } catch (error) {
         console.error("Une erreur s'est produite lors de la récupération des données :", error);
     }
 }
-
-
 
 // Fonctions utilitaires
 // Fonction pour extraire les coordonnées du département
@@ -1011,8 +1017,8 @@ async function fetchDepartments() {
 
 
 window.addEventListener('load', () => {
-	fetchDepartments(); // Appel pour récupérer la liste des départements lors du chargement de la page
 	showLoadingMessage();
+	fetchDepartments(); // Appel pour récupérer la liste des départements lors du chargement de la page
 });
 
 // Changer de departement et recharger les markers
