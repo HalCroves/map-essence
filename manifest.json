@@ -1,0 +1,26 @@
+{
+  "name": "Prix Carburants - Carte interactive",
+  "short_name": "Carburants",
+  "description": "Trouvez les stations essence les moins chères près de chez vous",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f1923",
+  "theme_color": "#0f1923",
+  "icons": [
+    {
+      "src": "img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "navigation"]
+}

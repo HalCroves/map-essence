@@ -563,11 +563,57 @@ td.text-elec {
   box-shadow: 0 8px 32px rgba(0,0,0,.25);
   font-size: 14px;
   font-weight: 500;
+  min-width: 300px;
+  text-align: center;
+}
+
+#loadingTitle {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+#loadingProgressBar {
+  width: 100%;
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+#loadingProgressFill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #3388ff, #22c55e);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+#loadingDetail {
+  font-size: 12px;
+  color: #666;
+}
+
+/* ---------------------------------------------------------------------------
+   Station enseigne in popup
+   --------------------------------------------------------------------------- */
+
+.station-enseigne {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a5276;
+  border-bottom: 2px solid #3388ff;
+  padding-bottom: 4px;
 }
 
 /* ---------------------------------------------------------------------------
    Misc Leaflet overrides
    --------------------------------------------------------------------------- */
+
+.leaflet-routing-container {
+  display: none !important;
+}
 
 .leaflet-marker-icon.leaflet-div-icon.leaflet-zoom-animated.leaflet-interactive {
   z-index: 999 !important;
@@ -593,11 +639,30 @@ td.text-elec {
 
 @media (max-width: 480px) {
   .burger-menu {
-    width: 100vw;
+    width: 85vw;
+    max-width: 320px;
+    padding-top: 56px;
+  }
+
+  .burger-button {
+    top: 8px;
+    right: 8px;
+  }
+
+  #header-menu-trigger {
+    padding: 6px 10px;
   }
 
   #header-menu-trigger .header-menu-text {
     display: none;
+  }
+
+  .legend {
+    padding: 10px;
+  }
+
+  .legend h2 {
+    font-size: 11px;
   }
 
   .legend-item {
@@ -610,5 +675,21 @@ td.text-elec {
 
   .legend-item span {
     font-size: 9px;
+  }
+
+  select {
+    font-size: 11px;
+    height: 32px;
+  }
+
+  #update-button,
+  #calculateBtnBis {
+    font-size: 11px;
+    padding: 7px 14px;
+  }
+
+  .leaflet-popup-content {
+    font-size: 11px;
+    max-width: 260px;
   }
 }

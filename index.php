@@ -48,7 +48,13 @@ function getFallbackBrands() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f1923">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="description" content="Trouvez les stations essence les moins chères près de chez vous">
     <title>Prix des carburants - Carte interactive</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="img/icon-192.png">
+    <link rel="apple-touch-icon" href="img/icon-192.png">
     <link rel="stylesheet" href="libs/leaflet/leaflet.css">
     <link rel="stylesheet" href="libs/leaflet-routing-machine/leaflet-routing-machine.css">
     <link rel="stylesheet" href="libs/leaflet-markercluster/MarkerCluster.css">
@@ -59,7 +65,11 @@ function getFallbackBrands() {
 <body>
 
 <div id="loadingOverlay" style="display:none">
-    <div id="loadingMessage">Chargement des données en cours…</div>
+    <div id="loadingMessage">
+        <div id="loadingTitle">Chargement des données en cours…</div>
+        <div id="loadingProgressBar"><div id="loadingProgressFill"></div></div>
+        <div id="loadingDetail"></div>
+    </div>
 </div>
 
 <!-- Bouton burger -->
@@ -151,5 +161,14 @@ function getFallbackBrands() {
 })();
 </script>
 <script src="js/script.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(function(reg) {
+    console.log('SW enregistré, scope:', reg.scope);
+  }).catch(function(err) {
+    console.warn('SW non enregistré:', err);
+  });
+}
+</script>
 </body>
 </html>

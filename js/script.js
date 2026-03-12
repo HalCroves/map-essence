@@ -83,6 +83,8 @@ const consumptionResultDiv = document.getElementById('consumptionResult');
 const updateButton = document.getElementById('update-button');
 const departementSelect = document.getElementById('departement');
 const loadingOverlay = document.getElementById('loadingOverlay');
+const loadingDetail = document.getElementById('loadingDetail');
+const loadingProgressFill = document.getElementById('loadingProgressFill');
 
 // ---------------------------------------------------------------------------
 //  Utilitaire : echapper le HTML pour eviter les XSS
@@ -102,10 +104,17 @@ function escapeHtml(str) {
 
 function showLoading() {
   loadingOverlay.style.display = 'flex';
+  updateLoadingProgress(0, 'Initialisation…');
 }
 
 function hideLoading() {
   loadingOverlay.style.display = 'none';
+  updateLoadingProgress(0, '');
+}
+
+function updateLoadingProgress(percent, detail) {
+  if (loadingProgressFill) loadingProgressFill.style.width = percent + '%';
+  if (loadingDetail) loadingDetail.textContent = detail || '';
 }
 
 // ---------------------------------------------------------------------------
@@ -162,10 +171,20 @@ function clearPreviousData() {
 //  Suppression / ajout de route
 // ---------------------------------------------------------------------------
 
+// Patch global : proteger _clearLines contre _map === null
+(function() {
+  var proto = L.Routing.Control.prototype;
+  var orig = proto._clearLines;
+  if (orig) {
+    proto._clearLines = function() {
+      if (this._map) orig.apply(this, arguments);
+    };
+  }
+})();
+
 function removeExistingRoute() {
   if (routeControl) {
-    map.removeControl(routeControl);
-    map.removeLayer(routeControl);
+    try { map.removeControl(routeControl); } catch(e) { /* ignore */ }
     routeControl = null;
   }
 }
@@ -177,12 +196,17 @@ function createRoute(fromLat, fromLng, toLat, toLng, color) {
     draggableWaypoints: false,
     routeWhileDragging: false,
     show: false,
+    addWaypoints: false,
+    fitSelectedRoutes: false,
     createMarker: function() { return null; },
     lineOptions: {
       addWaypoints: false,
       styles: [{ weight: 2, className: 'abricot', color: color || '#3388ff' }],
     },
   }).addTo(map);
+  // Masquer le conteneur de directions s'il existe
+  var container = routeControl.getContainer();
+  if (container) container.style.display = 'none';
   return routeControl;
 }
 
@@ -232,6 +256,7 @@ function formatPrix(prix) {
 // ---------------------------------------------------------------------------
 
 function buildFuelPopup(record, parsedPrix, distanceKm) {
+  var enseigne = escapeHtml(record._enseigne) || '';
   var adresse = escapeHtml(record.adresse) || 'Adresse inconnue';
   var cp = escapeHtml(record.cp) || '';
   var ville = escapeHtml(record.ville) || '';
@@ -249,7 +274,12 @@ function buildFuelPopup(record, parsedPrix, distanceKm) {
   var prixHtml = formatPrix(parsedPrix);
   var dist = distanceKm != null ? distanceKm + ' km' : 'Calcul en attente';
 
-  return '<p><b>Adresse :</b> ' + adresse + ', ' + cp + ' ' + ville + '</p>' +
+  var enseigneHtml = enseigne
+    ? '<h3 class="station-enseigne">' + enseigne + '</h3>'
+    : '';
+
+  return enseigneHtml +
+    '<p><b>Adresse :</b> ' + adresse + ', ' + cp + ' ' + ville + '</p>' +
     '<p><b>Services :</b> ' + services + '</p>' +
     '<p><b>Automate 24/24 :</b> ' + automate + '</p>' +
     '<p><b>Carburants disponibles :</b> ' + carburants + '</p>' +
@@ -346,7 +376,101 @@ function getFuelApiUrl(page, departement) {
 }
 
 // ---------------------------------------------------------------------------
-//  Recuperation des stations essence
+//  Enrichissement enseigne via Overpass API (batch par bbox du departement)
+// ---------------------------------------------------------------------------
+
+async function fetchEnseignesBatch(records) {
+  if (!records.length) return;
+
+  var lats = [], lngs = [];
+  for (var i = 0; i < records.length; i++) {
+    var g = records[i].geom;
+    if (g && g.lat && g.lon) {
+      lats.push(g.lat);
+      lngs.push(g.lon);
+    }
+  }
+  if (!lats.length) return;
+
+  var minLat = Math.min.apply(null, lats) - 0.01;
+  var maxLat = Math.max.apply(null, lats) + 0.01;
+  var minLng = Math.min.apply(null, lngs) - 0.01;
+  var maxLng = Math.max.apply(null, lngs) + 0.01;
+
+  var bbox = minLat + ',' + minLng + ',' + maxLat + ',' + maxLng;
+  var query = '[out:json][timeout:15];(' +
+    'node["amenity"="fuel"](' + bbox + ');' +
+    'way["amenity"="fuel"](' + bbox + ');' +
+    ');out center tags;';
+
+  try {
+    var resp = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'data=' + encodeURIComponent(query),
+    });
+    var data = await resp.json();
+    var osmStations = (data.elements || []).map(function(el) {
+      var lat = el.lat || (el.center && el.center.lat);
+      var lon = el.lon || (el.center && el.center.lon);
+      var name = (el.tags && (el.tags.brand || el.tags.name || el.tags.operator)) || '';
+      return { lat: lat, lon: lon, name: name };
+    }).filter(function(s) { return s.lat && s.lon && s.name; });
+
+    if (!osmStations.length) return;
+
+    // Associer chaque record a la station OSM la plus proche (< 150m)
+    for (var r = 0; r < records.length; r++) {
+      var rec = records[r];
+      var geom = rec.geom;
+      if (!geom || !geom.lat || !geom.lon) continue;
+
+      var bestDist = 0.0015; // ~150m en degres
+      var bestName = '';
+      for (var s = 0; s < osmStations.length; s++) {
+        var dLat = geom.lat - osmStations[s].lat;
+        var dLon = geom.lon - osmStations[s].lon;
+        var dist = Math.sqrt(dLat * dLat + dLon * dLon);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestName = osmStations[s].name;
+        }
+      }
+      if (bestName) rec._enseigne = bestName;
+    }
+  } catch(err) {
+    console.warn('Enrichissement enseignes indisponible :', err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+//  Recuperation paginee de toutes les stations essence
+// ---------------------------------------------------------------------------
+
+async function fetchAllFuelRecords(selectedDepartement) {
+  var allRecords = [];
+  var page = 1;
+  var totalCount = null;
+
+  while (true) {
+    updateLoadingProgress(10, 'Stations essence : page ' + page + '…');
+    var resp = await fetch(getFuelApiUrl(page, selectedDepartement));
+    var data = await resp.json();
+    var records = data.results || [];
+    if (totalCount === null) totalCount = data.total_count || 0;
+
+    allRecords = allRecords.concat(records);
+    console.log('Carburants page ' + page + ' : ' + records.length + ' enregistrements (total : ' + allRecords.length + '/' + totalCount + ')');
+
+    if (allRecords.length >= totalCount || records.length < RECORDS_PER_PAGE) break;
+    page++;
+  }
+
+  return allRecords;
+}
+
+// ---------------------------------------------------------------------------
+//  Recuperation des stations essence (avec enrichissement + parallele)
 // ---------------------------------------------------------------------------
 
 async function fetchRecords(page, selectedDepartement) {
@@ -354,18 +478,35 @@ async function fetchRecords(page, selectedDepartement) {
   showLoading();
 
   try {
-    var resp = await fetch(getFuelApiUrl(page, selectedDepartement));
-    var data = await resp.json();
-    var records = data.results || [];
+    // 1) Charger toutes les stations carburant (pagine)
+    var fuelRecords = await fetchAllFuelRecords(selectedDepartement);
+    console.log('Carburants total : ' + fuelRecords.length + ' enregistrements');
 
-    console.log('Carburants : ' + records.length + ' enregistrements');
+    // 2) Enrichir les enseignes via Overpass (en parallele avec bornes+parkings)
+    updateLoadingProgress(30, 'Enrichissement des enseignes…');
+    var parkingDept = selectedDepartement === 'Paris' ? '\u00CEle-de-France' : selectedDepartement;
 
+    var enrichPromise = fetchEnseignesBatch(fuelRecords).catch(function(e) {
+      console.warn('Enrichissement enseignes en erreur :', e);
+    });
+    var elecPromise = fetchElectricRecords(1, selectedDepartement).catch(function(e) {
+      console.error('Erreur bornes \u00E9lectriques :', e);
+    });
+    var parkPromise = fetchParkingRecords(1, parkingDept).catch(function(e) {
+      console.error('Erreur parkings :', e);
+    });
+
+    // Attendre l'enrichissement avant d'afficher les marqueurs carburant
+    await enrichPromise;
+    updateLoadingProgress(60, 'Affichage des stations…');
+
+    // 3) Placer les marqueurs carburant
     var pricesByCarburant = {
       Gazole: [], E10: [], SP98: [], SP95: [], E85: [], GPLc: [],
     };
 
-    for (var i = 0; i < records.length; i++) {
-      var record = records[i];
+    for (var i = 0; i < fuelRecords.length; i++) {
+      var record = fuelRecords[i];
       var geom = record.geom;
       var prix = record.prix;
       if (!geom || !geom.lat || !geom.lon) continue;
@@ -395,23 +536,16 @@ async function fetchRecords(page, selectedDepartement) {
 
     highlightTop3(pricesByCarburant);
 
-    try {
-      await fetchElectricRecords(1, selectedDepartement);
-    } catch(elecErr) {
-      console.error('Erreur bornes \u00E9lectriques :', elecErr);
-    }
+    // 4) Attendre la fin des bornes et parkings
+    updateLoadingProgress(80, 'Chargement bornes & parkings…');
+    await Promise.all([elecPromise, parkPromise]);
 
-    var parkingDept = selectedDepartement === 'Paris' ? '\u00CEle-de-France' : selectedDepartement;
-    try {
-      await fetchParkingRecords(1, parkingDept);
-    } catch(parkErr) {
-      console.error('Erreur parkings :', parkErr);
-    }
   } catch(err) {
     console.error('Erreur r\u00E9cup\u00E9ration donn\u00E9es carburant :', err);
   } finally {
     markersLayer.addTo(map);
-    hideLoading();
+    updateLoadingProgress(100, 'Termin\u00E9 !');
+    setTimeout(hideLoading, 300);
   }
 }
 
@@ -577,10 +711,12 @@ async function fetchParkingRecords(page, selectedDepartement) {
   var offset = (page - 1) * RECORDS_PER_PAGE;
   var whereClause;
 
-  if (selectedDepartement === '\u00CEle-de-France') {
-    whereClause = "(insee_code like '75*') OR reg_name = '\u00CEle-de-France'";
+  // Sanitize: n'autoriser que les caracteres alphanumeriques, espaces, tirets et apostrophes
+  var safeDept = selectedDepartement.replace(/[^a-zA-ZÀ-ÿ0-9\s\-']/g, '');
+  if (safeDept === 'Île-de-France' || selectedDepartement === '\u00CEle-de-France') {
+    whereClause = "(insee_code like '75*') OR reg_name = 'Île-de-France'";
   } else {
-    whereClause = 'dep_name like "' + selectedDepartement + '"';
+    whereClause = 'dep_name like "' + safeDept + '"';
   }
 
   var url = 'https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/' +
@@ -668,6 +804,9 @@ async function fetchDepartments() {
 updateButton.addEventListener('click', async function() {
   var selected = departementSelect.value;
   if (!selected) return;
+
+  // Sauvegarder le choix dans localStorage
+  try { localStorage.setItem('lastDepartement', selected); } catch(e) { /* quota */ }
 
   clearPreviousData();
   await fetchRecords(1, selected);
@@ -870,30 +1009,65 @@ calculateBtnBis.addEventListener('click', function() {
 
 window.addEventListener('load', function() {
   showLoading();
-  fetchDepartments();
 
-  if ('geolocation' in navigator) {
-    navigator.geolocation.getCurrentPosition(
-      function(pos) {
-        userLatitude = pos.coords.latitude;
-        userLongitude = pos.coords.longitude;
+  // Charger les departements d'abord
+  fetchDepartments().then(function() {
+    var saved = null;
+    try { saved = localStorage.getItem('lastDepartement'); } catch(e) { /* ignore */ }
+    if (saved) {
+      departementSelect.value = saved;
+    }
 
-        fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + userLatitude + '&lon=' + userLongitude)
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            var dept = data.address && data.address.county;
-            if (dept) {
-              fetchRecords(1, dept);
-              addUserMarker(userLatitude, userLongitude);
-            } else {
-              hideLoading();
-            }
-          })
-          .catch(function() { hideLoading(); });
-      },
-      function() { hideLoading(); }
-    );
-  } else {
-    hideLoading();
-  }
+    // Si on a un departement sauvegarde, charger directement sans attendre la geoloc
+    if (saved) {
+      fetchRecords(1, saved);
+      // Puis tenter la geoloc en arriere-plan pour mettre a jour le marqueur
+      requestGeolocationQuietly();
+    } else {
+      // Pas de departement sauvegarde : on doit attendre la geoloc
+      requestGeolocationForDept();
+    }
+  });
 });
+
+// Geolocation pour trouver le departement (premiere visite)
+function requestGeolocationForDept() {
+  if (!('geolocation' in navigator)) { hideLoading(); return; }
+
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      userLatitude = pos.coords.latitude;
+      userLongitude = pos.coords.longitude;
+
+      fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + userLatitude + '&lon=' + userLongitude)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var dept = data.address && data.address.county;
+          if (dept) {
+            departementSelect.value = dept;
+            try { localStorage.setItem('lastDepartement', dept); } catch(e) { /* ignore */ }
+            fetchRecords(1, dept);
+            addUserMarker(userLatitude, userLongitude);
+          } else {
+            hideLoading();
+          }
+        })
+        .catch(function() { hideLoading(); });
+    },
+    function() { hideLoading(); }
+  );
+}
+
+// Geolocation silencieuse (juste pour le marqueur, pas pour les donnees)
+function requestGeolocationQuietly() {
+  if (!('geolocation' in navigator)) return;
+
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      userLatitude = pos.coords.latitude;
+      userLongitude = pos.coords.longitude;
+      addUserMarker(userLatitude, userLongitude);
+    },
+    function() { /* silencieux */ }
+  );
+}
