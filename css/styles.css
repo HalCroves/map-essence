@@ -645,13 +645,22 @@ td.text-elec {
   }
 
   .burger-button {
-    top: 8px;
-    right: 8px;
+    top: 10px;
+    right: 10px;
   }
 
   #header-menu-trigger {
-    padding: 6px 10px;
+    padding: 10px 12px;
+    gap: 6px;
+    border-radius: 8px;
   }
+
+  #header-menu-trigger .header-menu-icon {
+    width: 20px;
+  }
+
+  #header-menu-trigger .header-menu-icon::before { top: -7px; }
+  #header-menu-trigger .header-menu-icon::after  { bottom: -7px; }
 
   #header-menu-trigger .header-menu-text {
     display: none;

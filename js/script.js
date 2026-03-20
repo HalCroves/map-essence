@@ -27,11 +27,7 @@ const CARBURANT_LABELS = {
 //  Initialisation carte Leaflet
 // ---------------------------------------------------------------------------
 
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'libs/leaflet/marker-icon-2x.png',
-  iconUrl: 'libs/leaflet/marker-icon.png',
-  shadowUrl: 'libs/leaflet/marker-shadow.png',
-});
+L.Icon.Default.imagePath = 'libs/leaflet/';
 
 const map = L.map('map', {
   center: FRANCE_CENTER,
@@ -398,17 +394,28 @@ async function fetchEnseignesBatch(records) {
   var maxLng = Math.max.apply(null, lngs) + 0.01;
 
   var bbox = minLat + ',' + minLng + ',' + maxLat + ',' + maxLng;
-  var query = '[out:json][timeout:15];(' +
+  var query = '[out:json][timeout:25];(' +
     'node["amenity"="fuel"](' + bbox + ');' +
     'way["amenity"="fuel"](' + bbox + ');' +
     ');out center tags;';
+
+  var controller = new AbortController();
+  var timeoutId = setTimeout(function() { controller.abort(); }, 20000);
 
   try {
     var resp = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'data=' + encodeURIComponent(query),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
+
+    if (!resp.ok) {
+      console.warn('Overpass HTTP ' + resp.status + ' — enrichissement ignor\u00E9');
+      return;
+    }
+
     var data = await resp.json();
     var osmStations = (data.elements || []).map(function(el) {
       var lat = el.lat || (el.center && el.center.lat);

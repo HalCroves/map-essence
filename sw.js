@@ -3,7 +3,7 @@
 //  Cache les assets statiques, laisse passer les requetes API
 // ---------------------------------------------------------------------------
 
-var CACHE_NAME = 'carburants-v2';
+var CACHE_NAME = 'carburants-v3';
 
 var STATIC_ASSETS = [
   './',
